@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import print_function
+
 import logging
 import os
 import sys
@@ -129,13 +131,10 @@ class AodhShell(app.App):
         return self._client
 
     def clean_up(self, cmd, result, err):
-        if err and isinstance(err, exceptions.HttpError):
-            try:
-                error = err.response.json()
-            except Exception:
-                pass
-            else:
-                print(error['description'])
+        if isinstance(err, exceptions.HttpError) and err.details:
+            # FIXME(zqfan): Currently cliff prints exception message
+            # to stdout, we should switch to stderr once it is fixed.
+            print(err.details, file=sys.stdout)
 
     def configure_logging(self):
         if self.options.debug:
