@@ -114,6 +114,9 @@ class AlarmManager(base.Manager):
             if alarm_update['composite_rule']:
                 alarm['composite_rule'] = alarm_update['composite_rule']
             alarm_update.pop('composite_rule')
+        elif 'combination_rule' in alarm_update:
+            rule = alarm_update.pop('combination_rule')
+            alarm['combination_rule'].update(rule)
 
         alarm.update(alarm_update)
         return self._put(

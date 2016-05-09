@@ -130,7 +130,10 @@ class CliAlarmCreateTest(testtools.TestCase):
             '--aggregation-method', 'last',
             '--metric', 'cpu',
             '--resource-id', '01919bbd-8b0e-451c-be28-abe250ae9c1c',
-            '--resource-type', 'generic'
+            '--resource-type', 'generic',
+            '--alarm-id', '7005f841-e02f-4fca-ace2-8a8fecd81522',
+            '--alarm-id', '91b198b4-bb9d-4586-ba28-c251d71b8ef4',
+            '--operator', 'or'
             ])
 
         # Output for the test
@@ -151,6 +154,13 @@ class CliAlarmCreateTest(testtools.TestCase):
                                   'name': 'cons1',
                                   'start': '0 11 * * *'}],
             'repeat_actions': True,
+            'combination_rule': {
+                'alarm_ids': [
+                    '7005f841-e02f-4fca-ace2-8a8fecd81522',
+                    '91b198b4-bb9d-4586-ba28-c251d71b8ef4'
+                ],
+                'operator': 'or'
+            },
             'threshold_rule': {
                 'meter_name': 'cpu',
                 'period': 60,

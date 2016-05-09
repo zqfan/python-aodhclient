@@ -23,7 +23,7 @@ from aodhclient import exceptions
 from aodhclient.i18n import _
 from aodhclient import utils
 
-ALARM_TYPES = ['threshold', 'event', 'composite',
+ALARM_TYPES = ['combination', 'threshold', 'event', 'composite',
                'gnocchi_resources_threshold',
                'gnocchi_aggregation_by_metrics_threshold',
                'gnocchi_aggregation_by_resources_threshold']
@@ -235,6 +235,16 @@ class CliAlarmCreate(show.ShowOne):
             '--metric', metavar='<METRIC>',
             dest='metric', help='Metric to evaluate against.')
 
+        combination_group = parser.add_argument_group('combination alarm')
+        combination_group.add_argument(
+            '--alarm-id', dest='alarm_ids', action='append',
+            help='Specify UUID of an alarm which will be used for '
+                 'combination alarm. Can specify multiple times.')
+        combination_group.add_argument(
+            '--operator', choices=('and', 'or'), default='and',
+            help='Logical operator used for calculating combination '
+                 'alarm state.')
+
         threshold_group = parser.add_argument_group('threshold alarm')
         threshold_group.add_argument(
             '-m', '--meter-name', metavar='<METER NAME>',
@@ -309,6 +319,9 @@ class CliAlarmCreate(show.ShowOne):
             raise argparse.ArgumentTypeError(msg)
 
     def _validate_args(self, parsed_args):
+        if parsed_args.type == 'combination':
+            if not parsed_args.alarm_ids:
+                self.parser.error('combination alarm requries --alarm-id')
         if (parsed_args.type == 'threshold' and
                 not (parsed_args.meter_name and parsed_args.threshold)):
             self.parser.error('threshold alarm requires -m/--meter-name and '
@@ -353,6 +366,8 @@ class CliAlarmCreate(show.ShowOne):
                           'query'])
         alarm['event_rule'] = utils.dict_from_parsed_args(
             parsed_args, ['event_type', 'query'])
+        alarm['combination_rule'] = utils.dict_from_parsed_args(
+            parsed_args, ('alarm_ids', 'operator'))
         alarm['gnocchi_resources_threshold_rule'] = (
             utils.dict_from_parsed_args(parsed_args,
                                         ['granularity', 'comparison_operator',

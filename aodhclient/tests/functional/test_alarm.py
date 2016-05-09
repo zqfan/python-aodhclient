@@ -358,6 +358,63 @@ class AodhClientTest(base.ClientTestBase):
         self.assertNotIn(alarm_id,
                          [r['alarm_id'] for r in self.parser.listing(result)])
 
+    def test_combination_alarm_scenario(self):
+        params = 'create --type combination --name combination-alarm-01'
+        # test missing --alarm-id
+        self.assertRaises(exceptions.CommandFailed,
+                          self.aodh, 'alarm', params=params)
+
+        # test create
+        params = 'create --type event --name event-alarm'
+        result = self.aodh('alarm', params=params + '0')
+        alarm_id_0 = self.details_multiple(result)[0]['alarm_id']
+        result = self.aodh('alarm', params=params + '1')
+        alarm_id_1 = self.details_multiple(result)[0]['alarm_id']
+
+        params = ('create --type combination --name combination-alarm '
+                  '--alarm-id %s --alarm-id %s') % (alarm_id_0, alarm_id_1)
+        result = self.aodh('alarm', params=params)
+        alarm = self.details_multiple(result)[0]
+        self.assertEqual('combination', alarm['type'])
+        self.assertEqual("[%s, %s]" % (alarm_id_0, alarm_id_1),
+                         alarm['alarm_ids'])
+        self.assertEqual('and', alarm['operator'])
+
+        # test update
+        # test update common field
+        params = 'update %s --serverity high' % alarm['alarm_id']
+        result = self.aodh('alarm', params=params)
+        result = self.aodh('alarm', params='show %s' % alarm['alarm_id'])
+        updated_alarm = self.details_multiple(result)[0]
+        self.assertEqual('high', updated_alarm['severity'])
+
+        # test updae alarm ids
+        result = self.aodh('alarm', params=params + '2')
+        alarm_id_2 = self.details_multiple(result)[0]['alarm_id']
+        params = 'update %s --alarm-id %s --alarm-id %s' % (
+            alarm['alarm_id'], alarm_id_0, alarm_id_2)
+        result = self.aodh('alarm', params=params)
+        result = self.aodh('alarm', params='show %s' % alarm['alarm_id'])
+        updated_alarm = self.details_multiple(result)[0]
+        self.assertEqual(str([alarm_id_0, alarm_id_2]), updated_alarm['alarm_ids'])
+
+        # test delete
+        self.aodh('alarm', params='delete %s' % alarm['alarm_id'])
+
+        # test create with operator
+        params = ('create --type combination --name combination-alarm '
+                  '--alarm-id %s --alarm-id %s --operator or') % (
+            alarm_id_0, alarm_id_1)
+        result = self.aodh('alarm', params=params)
+        alarm = self.details_multiple(result)[0]
+        self.assertEqual('or', alarm['operator'])
+
+        # clean
+        self.aodh('alarm', params='delete %s' % alarm['alarm_id'])
+        self.aodh('alarm', params='delete %s' % alarm_id_0)
+        self.aodh('alarm', params='delete %s' % alarm_id_1)
+        self.aodh('alarm', params='delete %s' % alarm_id_2)
+
 
 class AodhClientGnocchiRulesTest(base.ClientTestBase):
 
